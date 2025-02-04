@@ -4,13 +4,12 @@ Um aplicativo moderno e intuitivo para gestão financeira pessoal, desenvolvido 
 
 ## Tecnologias Utilizadas
 
-- Next.js 14 com App Router
+- Next.js 14
+- React
 - TypeScript
 - Tailwind CSS
-- Supabase (Banco de dados e Autenticação)
+- Supabase
 - OpenAI API / Google Gemini (Integração com IA)
-- Prisma (ORM)
-- shadcn/ui (Componentes UI)
 - Lucide Icons
 
 ## Requisitos
