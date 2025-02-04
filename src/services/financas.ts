@@ -38,6 +38,9 @@ export interface Sonho {
 // Serviços de Receitas
 export const receitasService = {
   listar: async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuário não autenticado')
+
     const { data, error } = await supabase
       .from("receitas")
       .select("*")
@@ -48,9 +51,12 @@ export const receitasService = {
   },
 
   criar: async (receita: Omit<Receita, "id" | "created_at" | "user_id">) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuário não autenticado')
+
     const { data, error } = await supabase
       .from("receitas")
-      .insert([receita])
+      .insert([{ ...receita, user_id: user.id }])
       .select()
       .single()
 
@@ -59,10 +65,14 @@ export const receitasService = {
   },
 
   atualizar: async (id: string, receita: Partial<Receita>) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuário não autenticado')
+
     const { data, error } = await supabase
       .from("receitas")
       .update(receita)
       .eq("id", id)
+      .eq("user_id", user.id)
       .select()
       .single()
 
@@ -71,10 +81,14 @@ export const receitasService = {
   },
 
   excluir: async (id: string) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuário não autenticado')
+
     const { error } = await supabase
       .from("receitas")
       .delete()
       .eq("id", id)
+      .eq("user_id", user.id)
 
     if (error) throw error
   }
@@ -83,6 +97,9 @@ export const receitasService = {
 // Serviços de Despesas
 export const despesasService = {
   listar: async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuário não autenticado')
+
     const { data, error } = await supabase
       .from("despesas")
       .select("*")
@@ -93,9 +110,12 @@ export const despesasService = {
   },
 
   criar: async (despesa: Omit<Despesa, "id" | "created_at" | "user_id">) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuário não autenticado')
+
     const { data, error } = await supabase
       .from("despesas")
-      .insert([despesa])
+      .insert([{ ...despesa, user_id: user.id }])
       .select()
       .single()
 
@@ -104,10 +124,14 @@ export const despesasService = {
   },
 
   atualizar: async (id: string, despesa: Partial<Despesa>) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuário não autenticado')
+
     const { data, error } = await supabase
       .from("despesas")
       .update(despesa)
       .eq("id", id)
+      .eq("user_id", user.id)
       .select()
       .single()
 
@@ -116,10 +140,14 @@ export const despesasService = {
   },
 
   excluir: async (id: string) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuário não autenticado')
+
     const { error } = await supabase
       .from("despesas")
       .delete()
       .eq("id", id)
+      .eq("user_id", user.id)
 
     if (error) throw error
   }
@@ -128,6 +156,9 @@ export const despesasService = {
 // Serviços de Sonhos
 export const sonhosService = {
   listar: async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuário não autenticado')
+
     const { data, error } = await supabase
       .from("sonhos")
       .select("*")
@@ -138,9 +169,12 @@ export const sonhosService = {
   },
 
   criar: async (sonho: Omit<Sonho, "id" | "created_at" | "user_id">) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuário não autenticado')
+
     const { data, error } = await supabase
       .from("sonhos")
-      .insert([sonho])
+      .insert([{ ...sonho, user_id: user.id }])
       .select()
       .single()
 
@@ -149,10 +183,14 @@ export const sonhosService = {
   },
 
   atualizar: async (id: string, sonho: Partial<Sonho>) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuário não autenticado')
+
     const { data, error } = await supabase
       .from("sonhos")
       .update(sonho)
       .eq("id", id)
+      .eq("user_id", user.id)
       .select()
       .single()
 
@@ -161,10 +199,14 @@ export const sonhosService = {
   },
 
   excluir: async (id: string) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuário não autenticado')
+
     const { error } = await supabase
       .from("sonhos")
       .delete()
       .eq("id", id)
+      .eq("user_id", user.id)
 
     if (error) throw error
   }

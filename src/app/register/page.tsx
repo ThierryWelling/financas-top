@@ -1,101 +1,138 @@
-import React from 'react'
+"use client"
+
+import { useState } from "react"
+import { useAuth } from "@/hooks/useAuth"
+import { useRouter } from "next/navigation"
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
 export default function RegisterPage() {
+  const { signUp } = useAuth()
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    confirmPassword: "",
+  })
+  const [error, setError] = useState("")
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("As senhas não coincidem")
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      await signUp(formData.email, formData.password)
+      router.push('/login?registered=true')
+    } catch (error) {
+      console.error('Erro no registro:', error)
+      setError("Erro ao criar conta. Tente novamente.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-24">
-      <div className="w-full max-w-md space-y-8">
+      <div className="w-full max-w-md space-y-8 rounded-xl border border-gray-800 bg-gray-900/50 p-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight">
-            Crie sua conta
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Ou{' '}
-            <Link href="/login" className="font-medium text-primary hover:text-primary/90">
-              entre com sua conta existente
-            </Link>
+          <h2 className="text-center text-3xl font-bold">Criar Conta</h2>
+          <p className="mt-2 text-center text-sm text-gray-400">
+            Crie sua conta para começar a gerenciar suas finanças
           </p>
         </div>
-        <form className="mt-8 space-y-6" action="#" method="POST">
-          <div className="space-y-4">
+
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4 rounded-md">
             <div>
-              <label htmlFor="name" className="sr-only">
-                Nome
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                autoComplete="name"
-                required
-                className="relative block w-full rounded-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                placeholder="Nome completo"
-              />
-            </div>
-            <div>
-              <label htmlFor="email" className="sr-only">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-400">
                 Email
               </label>
               <input
                 id="email"
                 name="email"
                 type="email"
-                autoComplete="email"
                 required
-                className="relative block w-full rounded-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                placeholder="Email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500"
+                placeholder="seu@email.com"
               />
             </div>
+
             <div>
-              <label htmlFor="password" className="sr-only">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-400">
                 Senha
               </label>
               <input
                 id="password"
                 name="password"
                 type="password"
-                autoComplete="new-password"
                 required
-                className="relative block w-full rounded-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                placeholder="Senha"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500"
+                placeholder="••••••••"
               />
             </div>
+
             <div>
-              <label htmlFor="password-confirmation" className="sr-only">
-                Confirme a senha
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-400">
+                Confirmar Senha
               </label>
               <input
-                id="password-confirmation"
-                name="password-confirmation"
+                id="confirmPassword"
+                name="confirmPassword"
                 type="password"
-                autoComplete="new-password"
                 required
-                className="relative block w-full rounded-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                placeholder="Confirme a senha"
+                value={formData.confirmPassword}
+                onChange={(e) =>
+                  setFormData({ ...formData, confirmPassword: e.target.value })
+                }
+                className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500"
+                placeholder="••••••••"
               />
             </div>
           </div>
 
-          <div>
-            <Button type="submit" className="w-full">
-              Criar conta
-            </Button>
-          </div>
+          {error && (
+            <div className="rounded-lg bg-red-500/10 p-4 text-sm text-red-500">
+              {error}
+            </div>
+          )}
 
-          <div className="text-sm text-center">
-            <p className="text-gray-600">
-              Ao criar uma conta, você concorda com nossos{' '}
-              <Link href="/terms" className="font-medium text-primary hover:text-primary/90">
-                Termos de Serviço
-              </Link>{' '}
-              e{' '}
-              <Link href="/privacy" className="font-medium text-primary hover:text-primary/90">
-                Política de Privacidade
-              </Link>
-            </p>
-          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex w-full justify-center rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-500/50 disabled:opacity-50"
+          >
+            {loading ? "Criando conta..." : "Criar conta"}
+          </button>
         </form>
+
+        <div className="text-sm text-center">
+          <p className="text-gray-600">
+            Ao criar uma conta, você concorda com nossos{' '}
+            <Link href="/terms" className="font-medium text-primary hover:text-primary/90">
+              Termos de Serviço
+            </Link>{' '}
+            e{' '}
+            <Link href="/privacy" className="font-medium text-primary hover:text-primary/90">
+              Política de Privacidade
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   )

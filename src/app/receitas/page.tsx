@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import { PlusCircle, DollarSign, TrendingUp, Calculator } from "lucide-react"
 import { receitasService } from "@/services/financas"
+import { useAuth } from "@/hooks/useAuth"
+import { useRouter } from "next/navigation"
 
 interface Receita {
   id: string
@@ -15,6 +17,8 @@ interface Receita {
 }
 
 export default function ReceitasPage() {
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
   const [receitas, setReceitas] = useState<Receita[]>([])
   const [loading, setLoading] = useState(true)
   const [novaReceita, setNovaReceita] = useState({
@@ -24,10 +28,19 @@ export default function ReceitasPage() {
     data: new Date().toISOString().split("T")[0]
   })
 
+  // Verificar autenticação
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login')
+    }
+  }, [user, authLoading, router])
+
   // Carregar receitas ao montar o componente
   useEffect(() => {
-    carregarReceitas()
-  }, [])
+    if (user) {
+      carregarReceitas()
+    }
+  }, [user])
 
   const carregarReceitas = async () => {
     try {
