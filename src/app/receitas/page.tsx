@@ -1,18 +1,22 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { PlusCircle, DollarSign, TrendingUp, Calculator } from "lucide-react"
+import { receitasService } from "@/services/financas"
 
 interface Receita {
   id: string
-  tipo: "fixo" | "variavel"
-  descricao: string
+  created_at?: string
+  user_id?: string
   valor: number
+  descricao: string
+  categoria: string
   data: string
 }
 
 export default function ReceitasPage() {
   const [receitas, setReceitas] = useState<Receita[]>([])
+  const [loading, setLoading] = useState(true)
   const [novaReceita, setNovaReceita] = useState({
     tipo: "fixo",
     descricao: "",
@@ -20,28 +24,59 @@ export default function ReceitasPage() {
     data: new Date().toISOString().split("T")[0]
   })
 
+  // Carregar receitas ao montar o componente
+  useEffect(() => {
+    carregarReceitas()
+  }, [])
+
+  const carregarReceitas = async () => {
+    try {
+      const data = await receitasService.listar()
+      setReceitas(data)
+    } catch (error) {
+      console.error('Erro ao carregar receitas:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const calcularMediaMensal = () => {
     if (receitas.length === 0) return 0
     const somaTotal = receitas.reduce((acc, receita) => acc + receita.valor, 0)
     return somaTotal / receitas.length
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const novoRegistro: Receita = {
-      id: Math.random().toString(36).substr(2, 9),
-      tipo: novaReceita.tipo as "fixo" | "variavel",
-      descricao: novaReceita.descricao,
-      valor: Number(novaReceita.valor),
-      data: novaReceita.data
+    try {
+      const novoRegistro = {
+        descricao: novaReceita.descricao,
+        valor: Number(novaReceita.valor),
+        data: novaReceita.data,
+        categoria: novaReceita.tipo // Usando o tipo como categoria
+      }
+      
+      await receitasService.criar(novoRegistro)
+      await carregarReceitas() // Recarrega a lista após criar
+
+      setNovaReceita({
+        tipo: "fixo",
+        descricao: "",
+        valor: "",
+        data: new Date().toISOString().split("T")[0]
+      })
+    } catch (error) {
+      console.error('Erro ao salvar receita:', error)
+      alert('Erro ao salvar receita. Por favor, tente novamente.')
     }
-    setReceitas([...receitas, novoRegistro])
-    setNovaReceita({
-      tipo: "fixo",
-      descricao: "",
-      valor: "",
-      data: new Date().toISOString().split("T")[0]
-    })
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    )
   }
 
   return (
@@ -157,7 +192,7 @@ export default function ReceitasPage() {
                   className="flex items-center justify-between rounded-lg border border-gray-800 bg-gray-800/50 p-4"
                 >
                   <div className="flex items-center gap-4">
-                    {receita.tipo === "fixo" ? (
+                    {receita.categoria === "fixo" ? (
                       <DollarSign className="h-8 w-8 text-green-500" />
                     ) : (
                       <TrendingUp className="h-8 w-8 text-blue-500" />
@@ -174,7 +209,7 @@ export default function ReceitasPage() {
                       R$ {receita.valor.toFixed(2)}
                     </p>
                     <p className="text-sm text-gray-400">
-                      {receita.tipo === "fixo" ? "Receita Fixa" : "Receita Variável"}
+                      {receita.categoria === "fixo" ? "Receita Fixa" : "Receita Variável"}
                     </p>
                   </div>
                 </div>

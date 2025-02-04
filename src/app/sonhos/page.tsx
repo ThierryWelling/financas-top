@@ -1,149 +1,182 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   PlusCircle,
-  Target,
-  Calendar,
-  Plane,
   Home,
   Car,
+  Plane,
   GraduationCap,
   Briefcase,
-  Trash2,
+  Hammer,
+  Heart,
+  Laptop,
   PiggyBank,
+  Target,
   TrendingUp,
+  ShoppingBag,
 } from "lucide-react"
+import { sonhosService } from "@/services/financas"
 
 // Categorias de sonhos
 const CATEGORIAS = {
-  viagem: {
-    nome: "Viagem",
-    icon: Plane,
-    cor: "text-blue-500",
-    sugestoes: [
-      "Pesquise passagens com antecedência",
-      "Considere viajar na baixa temporada",
-      "Utilize programas de milhas",
-    ],
-  },
   imovel: {
     nome: "Imóvel",
     icon: Home,
-    cor: "text-green-500",
-    sugestoes: [
-      "Poupe pelo menos 20% do valor para entrada",
-      "Compare diferentes financiamentos",
-      "Considere consórcio como alternativa",
-    ],
+    cor: "text-blue-500",
+    descricao: "Casa própria, apartamento, terreno",
   },
   veiculo: {
     nome: "Veículo",
     icon: Car,
-    cor: "text-red-500",
-    sugestoes: [
-      "Compare preços em diferentes concessionárias",
-      "Considere um seminovo em bom estado",
-      "Pesquise o custo total de propriedade",
-    ],
+    cor: "text-green-500",
+    descricao: "Carro, moto, bicicleta",
+  },
+  viagem: {
+    nome: "Viagem",
+    icon: Plane,
+    cor: "text-purple-500",
+    descricao: "Viagens nacionais e internacionais",
   },
   educacao: {
     nome: "Educação",
     icon: GraduationCap,
-    cor: "text-purple-500",
-    sugestoes: [
-      "Procure bolsas de estudo",
-      "Compare diferentes instituições",
-      "Verifique opções de financiamento estudantil",
-    ],
+    cor: "text-yellow-500",
+    descricao: "Cursos, faculdade, pós-graduação",
   },
-  empreendimento: {
-    nome: "Empreendimento",
+  negocios: {
+    nome: "Negócios",
     icon: Briefcase,
+    cor: "text-indigo-500",
+    descricao: "Abrir empresa, investimentos",
+  },
+  reforma: {
+    nome: "Reforma",
+    icon: Hammer,
     cor: "text-orange-500",
-    sugestoes: [
-      "Desenvolva um plano de negócios detalhado",
-      "Pesquise linhas de crédito para MEI/PME",
-      "Considere começar como side project",
-    ],
+    descricao: "Reforma da casa, móveis novos",
+  },
+  saude: {
+    nome: "Saúde",
+    icon: Heart,
+    cor: "text-red-500",
+    descricao: "Tratamentos, cirurgias, bem-estar",
+  },
+  tecnologia: {
+    nome: "Tecnologia",
+    icon: Laptop,
+    cor: "text-cyan-500",
+    descricao: "Computador, celular, gadgets",
+  },
+  investimento: {
+    nome: "Investimento",
+    icon: PiggyBank,
+    cor: "text-emerald-500",
+    descricao: "Reserva de emergência, aposentadoria",
+  },
+  outros: {
+    nome: "Outros",
+    icon: Target,
+    cor: "text-gray-500",
+    descricao: "Outros objetivos",
   },
 }
 
 interface Sonho {
   id: string
-  categoria: keyof typeof CATEGORIAS
+  created_at?: string
+  user_id?: string
   titulo: string
   descricao: string
-  valorAlvo: number
-  valorAtual: number
-  prazo: string
-  dataCriacao: string
+  valor_meta: number
+  valor_atual: number
+  data_meta: string
+  categoria: string
+  prioridade: number
 }
 
 export default function SonhosPage() {
   const [sonhos, setSonhos] = useState<Sonho[]>([])
+  const [loading, setLoading] = useState(true)
   const [novoSonho, setNovoSonho] = useState({
-    categoria: "viagem" as keyof typeof CATEGORIAS,
     titulo: "",
     descricao: "",
-    valorAlvo: "",
-    valorAtual: "",
-    prazo: "",
+    valor_meta: "",
+    valor_atual: "0",
+    data_meta: new Date().toISOString().split("T")[0],
+    categoria: "outros" as keyof typeof CATEGORIAS,
+    prioridade: 1,
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const novoRegistro: Sonho = {
-      id: Math.random().toString(36).substr(2, 9),
-      categoria: novoSonho.categoria,
-      titulo: novoSonho.titulo,
-      descricao: novoSonho.descricao,
-      valorAlvo: Number(novoSonho.valorAlvo),
-      valorAtual: Number(novoSonho.valorAtual),
-      prazo: novoSonho.prazo,
-      dataCriacao: new Date().toISOString(),
+  // Carregar sonhos ao montar o componente
+  useEffect(() => {
+    carregarSonhos()
+  }, [])
+
+  const carregarSonhos = async () => {
+    try {
+      const data = await sonhosService.listar()
+      setSonhos(data)
+    } catch (error) {
+      console.error('Erro ao carregar sonhos:', error)
+    } finally {
+      setLoading(false)
     }
-    setSonhos([...sonhos, novoRegistro])
-    setNovoSonho({
-      categoria: "viagem",
-      titulo: "",
-      descricao: "",
-      valorAlvo: "",
-      valorAtual: "",
-      prazo: "",
-    })
   }
 
-  const calcularProgresso = (valorAtual: number, valorAlvo: number) => {
-    return Math.min((valorAtual / valorAlvo) * 100, 100)
+  const calcularProgresso = (sonho: Sonho) => {
+    return (sonho.valor_atual / sonho.valor_meta) * 100
   }
 
-  const calcularTempoRestante = (prazo: string) => {
-    const hoje = new Date()
-    const dataFinal = new Date(prazo)
-    const diff = dataFinal.getTime() - hoje.getTime()
-    const dias = Math.ceil(diff / (1000 * 60 * 60 * 24))
-    
-    if (dias < 0) return "Prazo expirado"
-    if (dias === 0) return "Último dia"
-    if (dias === 1) return "1 dia restante"
-    return `${dias} dias restantes`
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const novoRegistro = {
+        titulo: novoSonho.titulo,
+        descricao: novoSonho.descricao,
+        valor_meta: Number(novoSonho.valor_meta),
+        valor_atual: Number(novoSonho.valor_atual),
+        data_meta: novoSonho.data_meta,
+        categoria: novoSonho.categoria,
+        prioridade: novoSonho.prioridade
+      }
+      
+      await sonhosService.criar(novoRegistro)
+      await carregarSonhos()
+
+      setNovoSonho({
+        titulo: "",
+        descricao: "",
+        valor_meta: "",
+        valor_atual: "0",
+        data_meta: new Date().toISOString().split("T")[0],
+        categoria: "outros",
+        prioridade: 1,
+      })
+    } catch (error) {
+      console.error('Erro ao salvar sonho:', error)
+      alert('Erro ao salvar sonho. Por favor, tente novamente.')
+    }
   }
 
-  const deletarSonho = (id: string) => {
-    setSonhos(sonhos.filter(sonho => sonho.id !== id))
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Meus Sonhos e Objetivos</h1>
+        <h1 className="text-3xl font-bold">Sonhos e Objetivos</h1>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 rounded-lg bg-purple-500/10 p-4">
             <Target className="h-5 w-5 text-purple-500" />
             <div>
-              <p className="text-sm text-purple-500">Total de Objetivos</p>
+              <p className="text-sm text-purple-500">Total de Sonhos</p>
               <p className="font-bold text-purple-500">{sonhos.length}</p>
             </div>
           </div>
@@ -152,31 +185,9 @@ export default function SonhosPage() {
 
       {/* Formulário de Novo Sonho */}
       <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-6">
-        <h2 className="mb-4 text-xl font-semibold">Definir Novo Objetivo</h2>
+        <h2 className="mb-4 text-xl font-semibold">Registrar Novo Sonho</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-400">
-                Categoria
-              </label>
-              <select
-                value={novoSonho.categoria}
-                onChange={(e) =>
-                  setNovoSonho({
-                    ...novoSonho,
-                    categoria: e.target.value as keyof typeof CATEGORIAS,
-                  })
-                }
-                className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-purple-500 focus:ring-purple-500"
-              >
-                {Object.entries(CATEGORIAS).map(([key, { nome }]) => (
-                  <option key={key} value={key}>
-                    {nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-400">
                 Título
@@ -188,36 +199,72 @@ export default function SonhosPage() {
                   setNovoSonho({ ...novoSonho, titulo: e.target.value })
                 }
                 className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-purple-500 focus:ring-purple-500"
-                placeholder="Ex: Viagem para Europa"
+                placeholder="Ex: Casa Própria"
                 required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-400">
+                Categoria
+              </label>
+              <select
+                value={novoSonho.categoria}
+                onChange={(e) =>
+                  setNovoSonho({ ...novoSonho, categoria: e.target.value as keyof typeof CATEGORIAS })
+                }
+                className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-purple-500 focus:ring-purple-500"
+              >
+                {Object.entries(CATEGORIAS).map(([key, categoria]) => (
+                  <option key={key} value={key}>
+                    {categoria.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-400">
+                Prioridade
+              </label>
+              <select
+                value={novoSonho.prioridade}
+                onChange={(e) =>
+                  setNovoSonho({ ...novoSonho, prioridade: Number(e.target.value) })
+                }
+                className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-purple-500 focus:ring-purple-500"
+              >
+                <option value={1}>Alta</option>
+                <option value={2}>Média</option>
+                <option value={3}>Baixa</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-2 lg:col-span-3">
+              <label className="block text-sm font-medium text-gray-400">
                 Descrição
               </label>
-              <input
-                type="text"
+              <textarea
                 value={novoSonho.descricao}
                 onChange={(e) =>
                   setNovoSonho({ ...novoSonho, descricao: e.target.value })
                 }
                 className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-purple-500 focus:ring-purple-500"
-                placeholder="Descreva seu objetivo"
+                placeholder="Descreva seu sonho..."
+                rows={3}
                 required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-400">
-                Valor Alvo
+                Valor Meta
               </label>
               <input
                 type="number"
-                value={novoSonho.valorAlvo}
+                value={novoSonho.valor_meta}
                 onChange={(e) =>
-                  setNovoSonho({ ...novoSonho, valorAlvo: e.target.value })
+                  setNovoSonho({ ...novoSonho, valor_meta: e.target.value })
                 }
                 className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-purple-500 focus:ring-purple-500"
                 placeholder="R$ 0,00"
@@ -231,9 +278,9 @@ export default function SonhosPage() {
               </label>
               <input
                 type="number"
-                value={novoSonho.valorAtual}
+                value={novoSonho.valor_atual}
                 onChange={(e) =>
-                  setNovoSonho({ ...novoSonho, valorAtual: e.target.value })
+                  setNovoSonho({ ...novoSonho, valor_atual: e.target.value })
                 }
                 className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-purple-500 focus:ring-purple-500"
                 placeholder="R$ 0,00"
@@ -243,13 +290,13 @@ export default function SonhosPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-400">
-                Data Alvo
+                Data Meta
               </label>
               <input
                 type="date"
-                value={novoSonho.prazo}
+                value={novoSonho.data_meta}
                 onChange={(e) =>
-                  setNovoSonho({ ...novoSonho, prazo: e.target.value })
+                  setNovoSonho({ ...novoSonho, data_meta: e.target.value })
                 }
                 className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-purple-500 focus:ring-purple-500"
                 required
@@ -262,106 +309,77 @@ export default function SonhosPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-500/50"
           >
             <PlusCircle className="h-4 w-4" />
-            Adicionar Objetivo
+            Adicionar Sonho
           </button>
         </form>
       </div>
 
       {/* Lista de Sonhos */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {sonhos.length === 0 ? (
-          <div className="col-span-2 rounded-lg border border-gray-800 bg-gray-900/50 p-8 text-center">
-            <PiggyBank className="mx-auto h-12 w-12 text-gray-600" />
-            <p className="mt-2 text-gray-500">
-              Você ainda não definiu nenhum objetivo. Comece adicionando seu primeiro sonho!
-            </p>
-          </div>
-        ) : (
-          sonhos.map((sonho) => {
-            const categoria = CATEGORIAS[sonho.categoria]
-            const Icon = categoria.icon
-            const progresso = calcularProgresso(sonho.valorAtual, sonho.valorAlvo)
-            const tempoRestante = calcularTempoRestante(sonho.prazo)
-            
-            return (
-              <div
-                key={sonho.id}
-                className="rounded-lg border border-gray-800 bg-gray-900/50 p-6"
-              >
-                <div className="mb-4 flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`rounded-lg bg-gray-800 p-2 ${categoria.cor}`}>
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">{sonho.titulo}</h3>
-                      <p className="text-sm text-gray-400">{sonho.descricao}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => deletarSonho(sonho.id)}
-                    className="rounded-lg p-2 text-gray-400 hover:bg-gray-800"
+      <div className="rounded-lg border border-gray-800 bg-gray-900/50">
+        <div className="p-6">
+          <h2 className="mb-4 text-xl font-semibold">Sonhos Registrados</h2>
+          <div className="space-y-4">
+            {sonhos.length === 0 ? (
+              <p className="text-center text-gray-500">
+                Nenhum sonho registrado ainda.
+              </p>
+            ) : (
+              sonhos.map((sonho) => {
+                const categoriaInfo = CATEGORIAS[sonho.categoria as keyof typeof CATEGORIAS] || CATEGORIAS.outros
+                const Icon = categoriaInfo.icon
+                const progresso = calcularProgresso(sonho)
+                
+                return (
+                  <div
+                    key={sonho.id}
+                    className="rounded-lg border border-gray-800 bg-gray-800/50 p-4"
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {/* Progresso */}
-                <div className="mb-4">
-                  <div className="mb-2 flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Progresso</span>
-                    <span className="font-medium">{progresso.toFixed(1)}%</span>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className={`rounded-lg p-2 ${categoriaInfo.cor} bg-opacity-10`}>
+                          <Icon className={`h-6 w-6 ${categoriaInfo.cor}`} />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">{sonho.titulo}</h3>
+                          <p className="mt-1 text-sm text-gray-400">
+                            {sonho.descricao}
+                          </p>
+                          <div className="mt-2 flex items-center gap-2 text-sm">
+                            <span className={categoriaInfo.cor}>{categoriaInfo.nome}</span>
+                            <span>•</span>
+                            <span className="text-gray-400">
+                              Meta: {new Date(sonho.data_meta).toLocaleDateString("pt-BR")}
+                            </span>
+                            <span>•</span>
+                            <span className="text-gray-400">
+                              Prioridade: {sonho.prioridade === 1 ? "Alta" : sonho.prioridade === 2 ? "Média" : "Baixa"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-purple-500">
+                          R$ {sonho.valor_atual.toFixed(2)} / R$ {sonho.valor_meta.toFixed(2)}
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          {progresso.toFixed(1)}% concluído
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <div className="h-2 w-full rounded-full bg-gray-700">
+                        <div
+                          className="h-2 rounded-full bg-purple-500 transition-all"
+                          style={{ width: `${progresso}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="h-2 rounded-full bg-gray-800">
-                    <div
-                      className="h-2 rounded-full bg-purple-500 transition-all"
-                      style={{ width: `${progresso}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Detalhes */}
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-400">Valor Atual</p>
-                    <p className="font-medium">
-                      R$ {sonho.valorAtual.toFixed(2)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Valor Alvo</p>
-                    <p className="font-medium">
-                      R$ {sonho.valorAlvo.toFixed(2)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Prazo</p>
-                    <p className="font-medium">{tempoRestante}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Valor Restante</p>
-                    <p className="font-medium">
-                      R$ {(sonho.valorAlvo - sonho.valorAtual).toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Sugestões */}
-                <div className="mt-4 rounded-lg bg-gray-800/50 p-4">
-                  <p className="mb-2 text-sm font-medium">Sugestões</p>
-                  <ul className="space-y-1">
-                    {categoria.sugestoes.map((sugestao, index) => (
-                      <li key={index} className="flex items-start gap-2 text-sm text-gray-400">
-                        <TrendingUp className="mt-0.5 h-4 w-4 text-purple-500" />
-                        {sugestao}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            )
-          })
-        )}
+                )
+              })
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -16,6 +16,7 @@ import {
   PieChart,
   ArrowDown,
 } from "lucide-react"
+import { despesasService } from "@/services/financas"
 
 // Categorias de despesas
 const CATEGORIAS = {
@@ -59,21 +60,40 @@ const CATEGORIAS = {
 
 interface Despesa {
   id: string
-  tipo: "fixo" | "variavel"
-  categoria: keyof typeof CATEGORIAS
-  descricao: string
+  created_at?: string
+  user_id?: string
   valor: number
+  descricao: string
+  categoria: string
   data: string
+  pago: boolean
 }
 
 export default function DespesasPage() {
   const [despesas, setDespesas] = useState<Despesa[]>([])
+  const [loading, setLoading] = useState(true)
   const [novaDespesa, setNovaDespesa] = useState({
-    tipo: "variavel",
+    categoria: "outros" as keyof typeof CATEGORIAS,
     descricao: "",
     valor: "",
     data: new Date().toISOString().split("T")[0],
   })
+
+  // Carregar despesas ao montar o componente
+  useEffect(() => {
+    carregarDespesas()
+  }, [])
+
+  const carregarDespesas = async () => {
+    try {
+      const data = await despesasService.listar()
+      setDespesas(data)
+    } catch (error) {
+      console.error('Erro ao carregar despesas:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Categorização automática baseada na descrição
   const categorizarDespesa = (descricao: string): keyof typeof CATEGORIAS => {
@@ -134,26 +154,38 @@ export default function DespesasPage() {
     return sugestoes
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const categoria = categorizarDespesa(novaDespesa.descricao)
-    
-    const novoDespesa: Despesa = {
-      id: Math.random().toString(36).substr(2, 9),
-      tipo: novaDespesa.tipo as "fixo" | "variavel",
-      categoria,
-      descricao: novaDespesa.descricao,
-      valor: Number(novaDespesa.valor),
-      data: novaDespesa.data,
+    try {
+      const novoRegistro = {
+        descricao: novaDespesa.descricao,
+        valor: Number(novaDespesa.valor),
+        data: novaDespesa.data,
+        categoria: novaDespesa.categoria,
+        pago: false
+      }
+      
+      await despesasService.criar(novoRegistro)
+      await carregarDespesas() // Recarrega a lista após criar
+
+      setNovaDespesa({
+        categoria: "outros",
+        descricao: "",
+        valor: "",
+        data: new Date().toISOString().split("T")[0],
+      })
+    } catch (error) {
+      console.error('Erro ao salvar despesa:', error)
+      alert('Erro ao salvar despesa. Por favor, tente novamente.')
     }
-    
-    setDespesas([...despesas, novoDespesa])
-    setNovaDespesa({
-      tipo: "variavel",
-      descricao: "",
-      valor: "",
-      data: new Date().toISOString().split("T")[0],
-    })
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    )
   }
 
   const analise = analisarPadroes()
@@ -213,17 +245,20 @@ export default function DespesasPage() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div>
               <label className="block text-sm font-medium text-gray-400">
-                Tipo
+                Categoria
               </label>
               <select
-                value={novaDespesa.tipo}
+                value={novaDespesa.categoria}
                 onChange={(e) =>
-                  setNovaDespesa({ ...novaDespesa, tipo: e.target.value })
+                  setNovaDespesa({ ...novaDespesa, categoria: e.target.value as keyof typeof CATEGORIAS })
                 }
                 className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-red-500 focus:ring-red-500"
               >
-                <option value="fixo">Fixo</option>
-                <option value="variavel">Variável</option>
+                {Object.entries(CATEGORIAS).map(([key, categoria]) => (
+                  <option key={key} value={key}>
+                    {categoria.nome}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -296,8 +331,8 @@ export default function DespesasPage() {
               </p>
             ) : (
               despesas.map((despesa) => {
-                const categoria = CATEGORIAS[despesa.categoria]
-                const Icon = categoria.icon
+                const categoriaInfo = CATEGORIAS[despesa.categoria as keyof typeof CATEGORIAS] || CATEGORIAS.outros
+                const Icon = categoriaInfo.icon
                 
                 return (
                   <div
@@ -305,22 +340,25 @@ export default function DespesasPage() {
                     className="flex items-center justify-between rounded-lg border border-gray-800 bg-gray-800/50 p-4"
                   >
                     <div className="flex items-center gap-4">
-                      <Icon className={`h-8 w-8 ${categoria.cor}`} />
+                      <Icon className={`h-8 w-8 ${categoriaInfo.cor}`} />
                       <div>
                         <h3 className="font-medium">{despesa.descricao}</h3>
                         <div className="flex items-center gap-2 text-sm text-gray-400">
                           <span>{new Date(despesa.data).toLocaleDateString("pt-BR")}</span>
                           <span>•</span>
-                          <span>{categoria.nome}</span>
+                          <span>{categoriaInfo.nome}</span>
+                          {despesa.pago && (
+                            <>
+                              <span>•</span>
+                              <span className="text-green-500">Pago</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-red-500">
                         R$ {despesa.valor.toFixed(2)}
-                      </p>
-                      <p className="text-sm text-gray-400">
-                        {despesa.tipo === "fixo" ? "Despesa Fixa" : "Despesa Variável"}
                       </p>
                     </div>
                   </div>
