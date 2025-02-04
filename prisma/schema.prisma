@@ -1,0 +1,129 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  name          String?
+  password      String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  accounts      Account[]
+  transactions  Transaction[]
+  categories    Category[]
+  goals         Goal[]
+  aiAnalyses    AIAnalysis[]
+}
+
+model Account {
+  id            String       @id @default(cuid())
+  name          String
+  type          AccountType
+  balance       Float        @default(0)
+  currency      String       @default("BRL")
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Transaction {
+  id            String       @id @default(cuid())
+  amount        Float
+  type          TransactionType
+  description   String
+  date          DateTime
+  categoryId    String
+  category      Category     @relation(fields: [categoryId], references: [id])
+  accountId     String
+  account       Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([categoryId])
+  @@map("transactions")
+}
+
+model Category {
+  id            String       @id @default(cuid())
+  name          String
+  type          TransactionType
+  color         String?
+  icon          String?
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([userId])
+  @@map("categories")
+}
+
+model Goal {
+  id            String       @id @default(cuid())
+  name          String
+  targetAmount  Float
+  currentAmount Float        @default(0)
+  deadline      DateTime?
+  description   String?
+  status        GoalStatus   @default(IN_PROGRESS)
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([userId])
+  @@map("goals")
+}
+
+model AIAnalysis {
+  id            String       @id @default(cuid())
+  type          String
+  content       Json
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([userId])
+  @@map("ai_analyses")
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  CREDIT_CARD
+  INVESTMENT
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum GoalStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
