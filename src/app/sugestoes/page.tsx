@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Brain,
   TrendingUp,
@@ -14,7 +14,7 @@ import {
   ArrowDown,
   DollarSign,
 } from "lucide-react"
-import { supabase, Receita, Despesa, Sonho } from "@/lib/supabase"
+import { calcularTotais } from "@/services/financas"
 
 interface InsightFinanceiro {
   tipo: "positivo" | "negativo" | "alerta" | "dica"
@@ -27,9 +27,9 @@ interface InsightFinanceiro {
 }
 
 interface DadosFinanceiros {
-  receitas: Receita[]
-  despesas: Despesa[]
-  sonhos: Sonho[]
+  receitas: any[]
+  despesas: any[]
+  sonhos: any[]
   receitaTotal: number
   despesaTotal: number
   saldoDisponivel: number
@@ -47,41 +47,7 @@ export default function SugestoesPage() {
 
   const carregarDados = async () => {
     try {
-      const user = (await supabase.auth.getUser()).data.user
-      if (!user) return
-
-      // Buscar dados do Supabase
-      const [receitasRes, despesasRes, sonhosRes] = await Promise.all([
-        supabase.from('receitas').select('*').eq('user_id', user.id),
-        supabase.from('despesas').select('*').eq('user_id', user.id),
-        supabase.from('sonhos').select('*').eq('user_id', user.id)
-      ])
-
-      const receitas = receitasRes.data || []
-      const despesas = despesasRes.data || []
-      const sonhos = sonhosRes.data || []
-
-      // Calcular totais
-      const receitaTotal = receitas.reduce((acc, r) => acc + r.valor, 0)
-      const despesaTotal = despesas.reduce((acc, d) => acc + d.valor, 0)
-      const saldoDisponivel = receitaTotal - despesaTotal
-
-      // Calcular gastos por categoria
-      const gastosPorCategoria = despesas.reduce((acc, d) => {
-        acc[d.categoria] = (acc[d.categoria] || 0) + d.valor
-        return acc
-      }, {} as Record<string, number>)
-
-      const dadosFinanceiros = {
-        receitas,
-        despesas,
-        sonhos,
-        receitaTotal,
-        despesaTotal,
-        saldoDisponivel,
-        gastosPorCategoria
-      }
-
+      const dadosFinanceiros = await calcularTotais()
       setDados(dadosFinanceiros)
       const novosInsights = await gerarInsights(dadosFinanceiros)
       setInsights(novosInsights)
@@ -96,35 +62,16 @@ export default function SugestoesPage() {
     const insights: InsightFinanceiro[] = []
 
     // Análise de saldo e sonhos
-    if (dados.saldoDisponivel > 0) {
-      const sonhosPriorizados = dados.sonhos
-        .map(sonho => ({
-          ...sonho,
-          percentualConcluido: (sonho.valor_atual / sonho.valor_meta) * 100,
-          valorFaltante: sonho.valor_meta - sonho.valor_atual
-        }))
-        .sort((a, b) => a.percentualConcluido - b.percentualConcluido)
-
-      if (sonhosPriorizados.length > 0) {
-        const sonhoPrioritario = sonhosPriorizados[0]
-        insights.push({
-          tipo: "dica",
-          titulo: "Alocação de Saldo Disponível",
-          descricao: `Você tem R$ ${dados.saldoDisponivel.toFixed(2)} disponíveis. Sugerimos investir R$ ${Math.min(dados.saldoDisponivel, sonhoPrioritario.valorFaltante).toFixed(2)} no seu sonho "${sonhoPrioritario.titulo}" que está ${sonhoPrioritario.percentualConcluido.toFixed(1)}% concluído.`,
-          valor: dados.saldoDisponivel,
-          prioridade: 1
-        })
-      }
-    }
-
-    // Análise de despesas
-    const categoriasPrioritarias = ['moradia', 'alimentação', 'saúde', 'transporte']
-    const despesasPriorizadas = dados.despesas
-      .sort((a, b) => {
-        const prioridadeA = categoriasPrioritarias.indexOf(a.categoria.toLowerCase())
-        const prioridadeB = categoriasPrioritarias.indexOf(b.categoria.toLowerCase())
-        return prioridadeA - prioridadeB
+    if (dados.saldoDisponivel > 0 && dados.sonhos.length > 0) {
+      const sonhoPrioritario = dados.sonhos[0] // Já está ordenado por percentual concluído
+      insights.push({
+        tipo: "dica",
+        titulo: "Alocação de Saldo Disponível",
+        descricao: `Você tem R$ ${dados.saldoDisponivel.toFixed(2)} disponíveis. Sugerimos investir R$ ${Math.min(dados.saldoDisponivel, sonhoPrioritario.valorFaltante).toFixed(2)} no seu sonho "${sonhoPrioritario.titulo}" que está ${sonhoPrioritario.percentualConcluido.toFixed(1)}% concluído.`,
+        valor: dados.saldoDisponivel,
+        prioridade: 1
       })
+    }
 
     // Alertas de gastos elevados
     Object.entries(dados.gastosPorCategoria).forEach(([categoria, valor]) => {

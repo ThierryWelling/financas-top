@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { MessageCircle, X, Send } from "lucide-react"
-import { supabase, Receita, Despesa, Sonho } from "@/lib/supabase"
+import { calcularTotais } from "@/services/financas"
 
 interface Mensagem {
   tipo: "usuario" | "ia"
@@ -10,9 +10,9 @@ interface Mensagem {
 }
 
 interface DadosFinanceiros {
-  receitas: Receita[]
-  despesas: Despesa[]
-  sonhos: Sonho[]
+  receitas: any[]
+  despesas: any[]
+  sonhos: any[]
   receitaTotal: number
   despesaTotal: number
   saldoDisponivel: number
@@ -39,37 +39,8 @@ export function ChatIA() {
 
   const carregarDados = async () => {
     try {
-      const user = (await supabase.auth.getUser()).data.user
-      if (!user) return
-
-      const [receitasRes, despesasRes, sonhosRes] = await Promise.all([
-        supabase.from('receitas').select('*').eq('user_id', user.id),
-        supabase.from('despesas').select('*').eq('user_id', user.id),
-        supabase.from('sonhos').select('*').eq('user_id', user.id)
-      ])
-
-      const receitas = receitasRes.data || []
-      const despesas = despesasRes.data || []
-      const sonhos = sonhosRes.data || []
-
-      const receitaTotal = receitas.reduce((acc, r) => acc + r.valor, 0)
-      const despesaTotal = despesas.reduce((acc, d) => acc + d.valor, 0)
-      const saldoDisponivel = receitaTotal - despesaTotal
-
-      const gastosPorCategoria = despesas.reduce((acc, d) => {
-        acc[d.categoria] = (acc[d.categoria] || 0) + d.valor
-        return acc
-      }, {} as Record<string, number>)
-
-      setDados({
-        receitas,
-        despesas,
-        sonhos,
-        receitaTotal,
-        despesaTotal,
-        saldoDisponivel,
-        gastosPorCategoria
-      })
+      const dadosFinanceiros = await calcularTotais()
+      setDados(dadosFinanceiros)
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
     }
@@ -100,23 +71,16 @@ export function ChatIA() {
     }
 
     if (perguntaLower.includes("sonho") || perguntaLower.includes("meta")) {
-      const sonhosPriorizados = dados.sonhos
-        .map(sonho => ({
-          ...sonho,
-          percentualConcluido: (sonho.valor_atual / sonho.valor_meta) * 100
-        }))
-        .sort((a, b) => a.percentualConcluido - b.percentualConcluido)
-
-      if (sonhosPriorizados.length === 0) {
+      if (dados.sonhos.length === 0) {
         return "Você ainda não cadastrou nenhum sonho. Que tal começar agora?"
       }
 
-      const sonhoPrioritario = sonhosPriorizados[0]
+      const sonhoPrioritario = dados.sonhos[0] // Já está ordenado por percentual concluído
       return `Seu sonho prioritário é "${sonhoPrioritario.titulo}" (${sonhoPrioritario.percentualConcluido.toFixed(1)}% concluído). ${
         dados.saldoDisponivel > 0
           ? `Você pode investir R$ ${Math.min(
               dados.saldoDisponivel,
-              sonhoPrioritario.valor_meta - sonhoPrioritario.valor_atual
+              sonhoPrioritario.valorFaltante
             ).toFixed(2)} nele!`
           : "Continue economizando para alcançá-lo!"
       }`
