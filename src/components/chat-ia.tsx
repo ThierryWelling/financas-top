@@ -239,11 +239,11 @@ export function ChatIA() {
             if (respostaLower === "sim") {
               await despesasService.criar({
                 user_id: profile.id,
-                descricao: dados.descricao,
                 valor: dados.valor,
+                descricao: dados.descricao,
                 categoria: dados.categoria,
                 data: dados.data,
-                status: "prevista"
+                pago: false
               })
               mensagemRetorno = "✅ Despesa criada com sucesso!"
             } else {

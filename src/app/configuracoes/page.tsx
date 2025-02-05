@@ -23,8 +23,17 @@ import {
 interface Configuracoes {
   id: string
   user_id: string
-  tema: "claro" | "escuro"
   cor_primaria: string
+  cores_secundarias: {
+    background: string
+    foreground: string
+    card: string
+    popover: string
+    primary: string
+    secondary: string
+    muted: string
+    accent: string
+  }
   notificacoes: {
     despesas_proximas: boolean
     despesas_atrasadas: boolean
@@ -44,14 +53,23 @@ export default function ConfiguracoesPage() {
   const [configuracoes, setConfiguracoes] = useState<Configuracoes>({
     id: "",
     user_id: "",
-    tema: "escuro",
     cor_primaria: "#7C3AED",
+    cores_secundarias: {
+      background: "hsl(240 10% 3.9%)",
+      foreground: "hsl(0 0% 98%)",
+      card: "hsl(240 10% 3.9%)",
+      popover: "hsl(240 10% 3.9%)",
+      primary: "hsl(263.4 70% 50.4%)",
+      secondary: "hsl(240 3.7% 15.9%)",
+      muted: "hsl(240 3.7% 15.9%)",
+      accent: "hsl(240 3.7% 15.9%)"
+    },
     notificacoes: {
       despesas_proximas: true,
       despesas_atrasadas: true,
       metas_atingidas: true,
-      dicas_economia: true,
-    },
+      dicas_economia: true
+    }
   })
 
   useEffect(() => {
@@ -179,23 +197,6 @@ export default function ConfiguracoesPage() {
       <h1 className="text-3xl font-bold">Configurações</h1>
 
       <Card className="p-6 space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Tema</h2>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="tema">Tema Escuro</Label>
-            <Switch
-              id="tema"
-              checked={configuracoes.tema === "escuro"}
-              onCheckedChange={(checked: boolean) =>
-                setConfiguracoes({
-                  ...configuracoes,
-                  tema: checked ? "escuro" : "claro",
-                })
-              }
-            />
-          </div>
-        </div>
-
         <div>
           <h2 className="text-xl font-semibold mb-4">Notificações</h2>
           <div className="space-y-4">

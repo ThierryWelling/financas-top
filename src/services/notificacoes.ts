@@ -24,6 +24,8 @@ export interface Notificacao {
   created_at: string
 }
 
+export type TipoNotificacao = "meta" | "alerta" | "lembrete" | "dica"
+
 export const notificacoesService = {
   async criar(notificacao: Omit<Notificacao, "id" | "created_at" | "lida">) {
     const { data, error } = await supabase
@@ -192,7 +194,7 @@ export const iaActions = {
       user_id,
       titulo: "Nova Receita Recorrente",
       mensagem: `Criei uma nova receita recorrente de R$ ${valor.toFixed(2)} para "${descricao}"`,
-      tipo: "acao"
+      tipo: "meta"
     })
 
     return receita
@@ -208,16 +210,16 @@ export const iaActions = {
       user_id,
       descricao,
       valor,
+      categoria: categoria as "Moradia" | "Alimentação" | "Transporte" | "Saúde" | "Educação" | "Lazer" | "Outros",
       data: new Date().toISOString(),
-      categoria,
-      status: "prevista",
+      pago: false
     })
 
     await notificacoesService.criar({
       user_id,
       titulo: "Nova Despesa Prevista",
       mensagem: `Registrei uma nova despesa prevista de R$ ${valor.toFixed(2)} para "${descricao}"`,
-      tipo: "acao"
+      tipo: "meta"
     })
 
     return despesa
@@ -233,7 +235,7 @@ export const iaActions = {
       user_id,
       descricao,
       valor,
-      categoria,
+      categoria: categoria as "Moradia" | "Alimentação" | "Transporte" | "Saúde" | "Educação" | "Lazer" | "Outros",
       status: "pendente",
     })
 
@@ -241,7 +243,7 @@ export const iaActions = {
       user_id,
       titulo: "Novo Sonho Financeiro",
       mensagem: `Criei um novo sonho financeiro "${descricao}" com meta de R$ ${valor.toFixed(2)}`,
-      tipo: "acao"
+      tipo: "meta"
     })
 
     return sonho
@@ -280,7 +282,7 @@ export const iaActions = {
         user_id,
         titulo: "Oportunidade de Investimento",
         mensagem: `Você tem um saldo disponível considerável. Que tal começar a investir?`,
-        tipo: "sugestao" as const,
+        tipo: "dica" as const,
       })
     }
 

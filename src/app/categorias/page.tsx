@@ -14,6 +14,9 @@ import {
   Draggable,
   type DropResult,
 } from "@hello-pangea/dnd"
+import { cn } from "@/lib/utils"
+
+type IconType = keyof typeof Icons
 
 export default function CategoriasPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([])
@@ -25,7 +28,7 @@ export default function CategoriasPage() {
     tipo: "despesa",
   })
   const [editando, setEditando] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     carregarCategorias()
@@ -35,6 +38,7 @@ export default function CategoriasPage() {
     try {
       const data = await categoriasService.listar()
       setCategorias(data)
+      setLoading(false)
     } catch (error) {
       console.error("Erro ao carregar categorias:", error)
       toast.error("Erro ao carregar categorias")
@@ -44,17 +48,15 @@ export default function CategoriasPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      setLoading(true)
       if (editando) {
         await categoriasService.atualizar(editando, novaCategoria)
         toast.success("Categoria atualizada com sucesso!")
+        setEditando(null)
       } else {
         await categoriasService.criar({
-          ...novaCategoria,
-          user_id: "", // Será preenchido pelo RLS
-          ordem: categorias.length,
-          ativo: true,
-        } as Categoria)
+          ...novaCategoria as Categoria,
+          ordem: categorias.length
+        })
         toast.success("Categoria criada com sucesso!")
       }
       setNovaCategoria({
@@ -62,15 +64,12 @@ export default function CategoriasPage() {
         descricao: "",
         icone: "Folder",
         cor: "#7C3AED",
-        tipo: "despesa",
+        tipo: "despesa"
       })
-      setEditando(null)
-      await carregarCategorias()
+      carregarCategorias()
     } catch (error) {
       console.error("Erro ao salvar categoria:", error)
       toast.error("Erro ao salvar categoria")
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -84,7 +83,7 @@ export default function CategoriasPage() {
     try {
       await categoriasService.excluir(id)
       toast.success("Categoria excluída com sucesso!")
-      await carregarCategorias()
+      carregarCategorias()
     } catch (error) {
       console.error("Erro ao excluir categoria:", error)
       toast.error("Erro ao excluir categoria")
@@ -98,22 +97,27 @@ export default function CategoriasPage() {
     const [reorderedItem] = items.splice(result.source.index, 1)
     items.splice(result.destination.index, 0, reorderedItem)
 
-    setCategorias(items)
+    const atualizadas = items.map((item, index) => ({
+      ...item,
+      ordem: index
+    }))
+
+    setCategorias(atualizadas)
 
     try {
       await categoriasService.reordenar(
-        items.map((item, index) => ({ id: item.id, ordem: index }))
+        atualizadas.map(({ id, ordem }) => ({ id, ordem }))
       )
     } catch (error) {
       console.error("Erro ao reordenar categorias:", error)
       toast.error("Erro ao reordenar categorias")
-      await carregarCategorias()
+      carregarCategorias()
     }
   }
 
-  const IconComponent = (iconName: string) => {
-    const Icon = Icons[iconName as keyof typeof Icons]
-    return Icon ? <Icon className="w-5 h-5" /> : <Icons.Folder className="w-5 h-5" />
+  const renderIcon = (iconName: string) => {
+    const IconComponent = Icons[iconName as keyof typeof Icons] as React.ComponentType<{ className?: string }>
+    return IconComponent ? <IconComponent className="w-5 h-5" /> : <Icons.Folder className="w-5 h-5" />
   }
 
   return (
@@ -246,53 +250,49 @@ export default function CategoriasPage() {
                   draggableId={categoria.id}
                   index={index}
                 >
-                  {(provided) => (
-                    <Card
+                  {(provided, snapshot) => (
+                    <div
                       ref={provided.innerRef}
                       {...provided.draggableProps}
                       {...provided.dragHandleProps}
-                      className="p-4 flex items-center justify-between"
+                      className={cn(
+                        "p-4 rounded-lg border border-gray-800 bg-gray-900/50",
+                        snapshot.isDragging && "opacity-50"
+                      )}
                       style={{
-                        borderLeftWidth: "4px",
-                        borderLeftColor: categoria.cor,
                         ...provided.draggableProps.style,
+                        borderLeftWidth: "4px",
+                        borderLeftColor: categoria.cor
                       }}
                     >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="p-2 rounded-lg"
-                          style={{ backgroundColor: categoria.cor + "20" }}
-                        >
-                          {IconComponent(categoria.icone)}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {renderIcon(categoria.icone)}
+                          <div>
+                            <h3 className="font-medium">{categoria.nome}</h3>
+                            {categoria.descricao && (
+                              <p className="text-sm text-gray-400">{categoria.descricao}</p>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-medium">{categoria.nome}</h3>
-                          <p className="text-sm text-gray-500">
-                            {categoria.descricao}
-                          </p>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(categoria)}
+                          >
+                            <Icons.Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(categoria.id)}
+                          >
+                            <Icons.Trash className="w-4 h-4" />
+                          </Button>
                         </div>
-                        <span className="ml-2 text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
-                          {categoria.tipo}
-                        </span>
                       </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(categoria)}
-                        >
-                          <Icons.Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(categoria.id)}
-                        >
-                          <Icons.Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </Card>
+                    </div>
                   )}
                 </Draggable>
               ))}

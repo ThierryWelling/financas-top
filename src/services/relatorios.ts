@@ -4,6 +4,11 @@ import "jspdf-autotable"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
+interface jsPDFWithAutoTable extends jsPDF {
+  autoTable: (options: any) => any
+  lastAutoTable: { finalY: number }
+}
+
 interface DadosRelatorio {
   receitas: any[]
   despesas: any[]
@@ -44,7 +49,7 @@ export const relatoriosService = {
     const dados = await this.buscarDadosPeriodo(periodo)
     
     // Criar documento PDF
-    const doc = new jsPDF()
+    const doc = new jsPDF() as jsPDFWithAutoTable
     
     // Cabeçalho
     doc.setFontSize(20)
@@ -177,7 +182,7 @@ export const relatoriosService = {
     }, {} as Record<string, number>)
 
     const percentualPorCategoria = Object.entries(gastosPorCategoria).reduce((acc, [cat, valor]) => {
-      acc[cat] = (valor / despesaTotal) * 100
+      acc[cat] = ((valor as number) / despesaTotal) * 100
       return acc
     }, {} as Record<string, number>)
 
@@ -212,7 +217,7 @@ export const relatoriosService = {
   },
 
   async analisarTendencias(dados: DadosRelatorio) {
-    const categorias = [...new Set(dados.despesas.map(d => d.categoria))]
+    const categorias = Array.from(new Set(dados.despesas.map(d => d.categoria)))
     const tendencias = []
 
     for (const categoria of categorias) {

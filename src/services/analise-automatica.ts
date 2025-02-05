@@ -20,7 +20,7 @@ export const analiseAutomatica = {
 
       // Análise de Gastos por Categoria
       const categoriasAltas = Object.entries(dados.gastosPorCategoria)
-        .filter(([_, valor]) => valor > dados.receitaTotal * 0.3)
+        .filter(([_, valor]) => (valor as number) > dados.receitaTotal * 0.3)
         .map(([categoria]) => categoria)
 
       if (categoriasAltas.length > 0) {
@@ -80,12 +80,12 @@ export const analiseAutomatica = {
 
       // Criar as notificações no banco
       for (const notif of notificacoes) {
-        await notificacoesService.criar(
-          notif.user_id,
-          notif.titulo,
-          notif.mensagem,
-          notif.tipo
-        )
+        await notificacoesService.criar({
+          user_id: notif.user_id,
+          titulo: notif.titulo,
+          mensagem: notif.mensagem,
+          tipo: "alerta"
+        })
       }
 
       return notificacoes
@@ -105,12 +105,12 @@ export const analiseAutomatica = {
       )
 
       for (const meta of metasAtingidas) {
-        await notificacoesService.criar(
-          userId,
-          "🎉 Meta Alcançada!",
-          `Parabéns! Você atingiu sua meta "${meta.descricao}"! Que tal definir um novo objetivo?`,
-          "acao"
-        )
+        await notificacoesService.criar({
+          user_id: userId,
+          titulo: "🎉 Meta Alcançada!",
+          mensagem: `Parabéns! Você atingiu sua meta "${meta.descricao}"! Que tal definir um novo objetivo?`,
+          tipo: "meta"
+        })
       }
 
       return metasAtingidas
@@ -151,12 +151,12 @@ export const analiseAutomatica = {
 
       // Criar as sugestões como notificações
       for (const sugestao of sugestoes) {
-        await notificacoesService.criar(
-          sugestao.user_id,
-          sugestao.titulo,
-          sugestao.mensagem,
-          sugestao.tipo
-        )
+        await notificacoesService.criar({
+          user_id: sugestao.user_id,
+          titulo: sugestao.titulo,
+          mensagem: sugestao.mensagem,
+          tipo: "dica"
+        })
       }
 
       return sugestoes
