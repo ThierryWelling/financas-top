@@ -1,6 +1,6 @@
 "use client"
 
-import { Menu, Search, Bell } from "lucide-react"
+import { Menu, Search } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import {
   DropdownMenu,
@@ -10,12 +10,29 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu"
+import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase"
+import { NotificationsButton } from "./notifications"
+import { useProfile } from "@/hooks/useProfile"
 
 interface HeaderProps {
   onMenuClick: () => void
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
+  const router = useRouter()
+  const { profile } = useProfile()
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut()
+      router.push('/login')
+      router.refresh()
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error)
+    }
+  }
+
   return (
     <header className="flex h-16 items-center border-b bg-background px-4 dark:bg-zinc-800/40">
       <button
@@ -37,18 +54,16 @@ export function Header({ onMenuClick }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-4">
-        <button className="inline-flex items-center justify-center rounded-lg p-2.5 text-zinc-700 hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 dark:text-zinc-400 dark:hover:bg-zinc-800">
-          <Bell className="h-5 w-5" />
-        </button>
+        <NotificationsButton />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 rounded-lg p-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 dark:text-zinc-400 dark:hover:bg-zinc-800">
               <Avatar>
                 <AvatarImage src="https://github.com/thierryaraujo.png" />
-                <AvatarFallback>TA</AvatarFallback>
+                <AvatarFallback>{profile?.nome?.substring(0, 2).toUpperCase() || 'UN'}</AvatarFallback>
               </Avatar>
-              Thierry Araujo
+              {profile?.nome || 'Usuário'}
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
@@ -57,7 +72,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             <DropdownMenuItem>Perfil</DropdownMenuItem>
             <DropdownMenuItem>Configurações</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-rose-500 dark:text-rose-400">
+            <DropdownMenuItem onClick={handleLogout} className="text-rose-500 dark:text-rose-400 cursor-pointer">
               Sair
             </DropdownMenuItem>
           </DropdownMenuContent>

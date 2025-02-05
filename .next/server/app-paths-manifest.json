@@ -1,11 +1,7 @@
 {
-  "/_not-found": "app/_not-found.js",
   "/dashboard/page": "app/dashboard/page.js",
-  "/login/page": "app/login/page.js",
-  "/despesas/page": "app/despesas/page.js",
-  "/receitas/page": "app/receitas/page.js",
-  "/page": "app/page.js",
-  "/register/page": "app/register/page.js",
-  "/sonhos/page": "app/sonhos/page.js",
-  "/sugestoes/page": "app/sugestoes/page.js"
+  "/orcamentos/page": "app/orcamentos/page.js",
+  "/relatorios/page": "app/relatorios/page.js",
+  "/categorias/page": "app/categorias/page.js",
+  "/admin/page": "app/admin/page.js"
 }

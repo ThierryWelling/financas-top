@@ -221,13 +221,31 @@ export const calcularTotais = async () => {
   ])
 
   const receitaTotal = receitas.reduce((acc, r) => acc + r.valor, 0)
+  
+  // Calcula o total apenas das despesas pagas
+  const despesaPaga = despesas.reduce((acc, d) => d.pago ? acc + d.valor : acc, 0)
+  
+  // Calcula o total geral de despesas (pagas e não pagas)
   const despesaTotal = despesas.reduce((acc, d) => acc + d.valor, 0)
-  const saldoDisponivel = receitaTotal - despesaTotal
+  
+  // Saldo disponível considera apenas despesas pagas
+  const saldoDisponivel = receitaTotal - despesaPaga
 
+  // Agrupa despesas por categoria
   const gastosPorCategoria = despesas.reduce((acc, d) => {
     acc[d.categoria] = (acc[d.categoria] || 0) + d.valor
     return acc
   }, {} as Record<string, number>)
+
+  // Verifica despesas atrasadas
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+
+  const despesasAtrasadas = despesas.filter(d => {
+    const dataDespesa = new Date(d.data)
+    dataDespesa.setHours(0, 0, 0, 0)
+    return !d.pago && dataDespesa < hoje
+  })
 
   const sonhosPriorizados = sonhos
     .map(sonho => ({
@@ -240,10 +258,14 @@ export const calcularTotais = async () => {
   return {
     receitas,
     despesas,
+    despesasAtrasadas,
     sonhos: sonhosPriorizados,
     receitaTotal,
     despesaTotal,
+    despesaPaga,
     saldoDisponivel,
-    gastosPorCategoria
+    gastosPorCategoria,
+    temDespesasAtrasadas: despesasAtrasadas.length > 0,
+    totalDespesasAtrasadas: despesasAtrasadas.reduce((acc, d) => acc + d.valor, 0)
   }
 } 
