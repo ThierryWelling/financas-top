@@ -1,13 +1,13 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { Sidebar } from "@/components/sidebar"
-import { ChatIA } from "@/components/chat-ia"
-import { analiseAutomatica } from "@/services/analise-automatica"
-import { useProfile } from "@/hooks/useProfile"
+import { Header } from "@/components/layout/header"
 import { NotificationsButton } from "@/components/notifications"
 import { Toaster } from "@/components/ui/toaster"
+import { analiseAutomatica } from "@/services/analise-automatica"
+import { useProfile } from "@/hooks/useProfile"
 
 interface ClientLayoutProps {
   children: React.ReactNode
@@ -17,6 +17,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   const pathname = usePathname()
   const { profile } = useProfile()
   const isAuthPage = pathname === '/login' || pathname === '/register'
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   useEffect(() => {
     if (!isAuthPage && profile?.id) {
@@ -73,15 +74,29 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-gray-950 text-gray-100">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
-        {children}
-      </main>
-      <ChatIA />
-      <div className="fixed top-4 right-4 z-50">
-        <NotificationsButton />
+    <div className="flex min-h-screen bg-gray-950 text-gray-100">
+      {/* Grid de fundo sutil */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+      
+      {/* Layout principal */}
+      <div className="relative flex w-full">
+        {/* Conteúdo principal */}
+        <div className="flex-1">
+          <Header onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
+          <main className="mt-16 p-4 md:p-8">
+            {children}
+          </main>
+        </div>
+
+        {/* Sidebar */}
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+
+        {/* Notificações */}
+        <div className="fixed top-4 right-4 z-50">
+          <NotificationsButton />
+        </div>
       </div>
+
       <Toaster />
     </div>
   )

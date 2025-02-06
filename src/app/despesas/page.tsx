@@ -28,6 +28,12 @@ import { despesasService } from "@/services/financas"
 import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
 import { ImportarDespesas } from "@/components/importar-despesas"
+import { Card } from '@/components/ui/card'
+import { formatCurrency } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import { ChatIA } from "@/components/chat-ia"
 
 // Categorias de despesas
 const CATEGORIAS = {
@@ -56,14 +62,11 @@ export default function DespesasPage() {
   const router = useRouter()
   const [despesas, setDespesas] = useState<Despesa[]>([])
   const [loading, setLoading] = useState(true)
-  const [novaDespesa, setNovaDespesa] = useState({
-    categoria: "outros",
-    descricao: "",
-    valor: "",
-    data: new Date().toISOString().split("T")[0],
-    pago: false
-  })
-  const [editandoDespesa, setEditandoDespesa] = useState<Despesa | null>(null)
+  const [novaDescricao, setNovaDescricao] = useState('')
+  const [novoValor, setNovoValor] = useState('')
+  const [novaCategoria, setNovaCategoria] = useState('')
+  const [novaData, setNovaData] = useState('')
+  const [editando, setEditando] = useState<string | null>(null)
   const [modalAberto, setModalAberto] = useState(false)
   const [showForm, setShowForm] = useState(false)
 
@@ -81,10 +84,16 @@ export default function DespesasPage() {
 
   const carregarDespesas = async () => {
     try {
-      const data = await despesasService.listar()
-      setDespesas(data)
+      const { data, error } = await supabase
+        .from('despesas')
+        .select('*')
+        .order('data', { ascending: false })
+
+      if (error) throw error
+      setDespesas(data || [])
     } catch (error) {
       console.error('Erro ao carregar despesas:', error)
+      toast.error('Erro ao carregar despesas')
     } finally {
       setLoading(false)
     }
@@ -97,78 +106,100 @@ export default function DespesasPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const novoRegistro = {
-        descricao: novaDespesa.descricao,
-        valor: Number(novaDespesa.valor),
-        data: novaDespesa.data,
-        categoria: novaDespesa.categoria,
-        pago: novaDespesa.pago
-      }
-      
-      await despesasService.criar(novoRegistro)
-      await carregarDespesas()
-
-      setNovaDespesa({
-        categoria: "outros",
-        descricao: "",
-        valor: "",
-        data: new Date().toISOString().split("T")[0],
+      const novaDespesa = {
+        descricao: novaDescricao,
+        valor: parseFloat(novoValor),
+        categoria: novaCategoria,
+        data: novaData,
         pago: false
-      })
+      }
+
+      const { error } = await supabase
+        .from('despesas')
+        .insert([novaDespesa])
+
+      if (error) throw error
+
+      toast.success('Despesa adicionada com sucesso!')
+      setNovaDescricao('')
+      setNovoValor('')
+      setNovaCategoria('')
+      setNovaData('')
+      carregarDespesas()
     } catch (error) {
-      console.error('Erro ao salvar despesa:', error)
-      alert('Erro ao salvar despesa. Por favor, tente novamente.')
+      console.error('Erro ao adicionar despesa:', error)
+      toast.error('Erro ao adicionar despesa')
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir esta despesa?')) {
-      try {
-        await despesasService.excluir(id)
-        await carregarDespesas()
-      } catch (error) {
-        console.error('Erro ao excluir despesa:', error)
-        alert('Erro ao excluir despesa. Por favor, tente novamente.')
-      }
+    try {
+      const { error } = await supabase
+        .from('despesas')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      toast.success('Despesa excluída com sucesso!')
+      carregarDespesas()
+    } catch (error) {
+      console.error('Erro ao excluir despesa:', error)
+      toast.error('Erro ao excluir despesa')
     }
   }
 
   const handleEdit = (despesa: Despesa) => {
-    setEditandoDespesa(despesa)
+    setEditando(despesa.id)
     setModalAberto(true)
   }
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!editandoDespesa) return
+    if (!editando) return
 
     try {
-      await despesasService.atualizar(editandoDespesa.id, {
-        descricao: editandoDespesa.descricao,
-        valor: Number(editandoDespesa.valor),
-        data: editandoDespesa.data,
-        categoria: editandoDespesa.categoria,
-        pago: editandoDespesa.pago
-      })
-      await carregarDespesas()
+      const { error } = await supabase
+        .from('despesas')
+        .update({
+          descricao: novaDescricao,
+          valor: parseFloat(novoValor),
+          categoria: novaCategoria,
+          data: novaData,
+          pago: false
+        })
+        .eq('id', editando)
+
+      if (error) throw error
+
+      toast.success('Despesa atualizada com sucesso!')
       setModalAberto(false)
-      setEditandoDespesa(null)
+      setEditando(null)
+      setNovaDescricao('')
+      setNovoValor('')
+      setNovaCategoria('')
+      setNovaData('')
+      carregarDespesas()
     } catch (error) {
       console.error('Erro ao atualizar despesa:', error)
-      alert('Erro ao atualizar despesa. Por favor, tente novamente.')
+      toast.error('Erro ao atualizar despesa')
     }
   }
 
   const togglePago = async (despesa: Despesa) => {
     try {
-      await despesasService.atualizar(despesa.id, {
-        ...despesa,
-        pago: !despesa.pago
-      })
-      await carregarDespesas()
+      const { error } = await supabase
+        .from('despesas')
+        .update({ pago: !despesa.pago })
+        .eq('id', despesa.id)
+
+      if (error) throw error
+
+      toast.success(`Despesa marcada como ${!despesa.pago ? 'paga' : 'não paga'}`)
+      carregarDespesas()
     } catch (error) {
-      console.error('Erro ao atualizar status de pagamento:', error)
-      alert('Erro ao atualizar status. Por favor, tente novamente.')
+      console.error('Erro ao atualizar status da despesa:', error)
+      toast.error('Erro ao atualizar status da despesa')
     }
   }
 
@@ -189,177 +220,106 @@ export default function DespesasPage() {
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Despesas</h1>
-        <div className="flex gap-4">
-          <ImportarDespesas />
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Despesas</h1>
+          <p className="text-gray-400">Gerencie suas despesas mensais</p>
         </div>
+        <ImportarDespesas onImportComplete={carregarDespesas} />
       </div>
 
       {/* Formulário de Nova Despesa */}
-      <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-4 md:p-6">
-        <h2 className="mb-4 text-xl font-semibold">Registrar Nova Despesa</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-400">
-                Categoria
-              </label>
-              <select
-                value={novaDespesa.categoria}
-                onChange={(e) =>
-                  setNovaDespesa({ ...novaDespesa, categoria: e.target.value })
-                }
-                className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-red-500 focus:ring-red-500"
-              >
-                {Object.entries(CATEGORIAS).map(([value, { nome }]) => (
-                  <option key={value} value={value}>
-                    {nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-400">
-                Descrição
-              </label>
-              <input
-                type="text"
-                value={novaDespesa.descricao}
-                onChange={(e) =>
-                  setNovaDespesa({ ...novaDespesa, descricao: e.target.value })
-                }
-                className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-red-500 focus:ring-red-500"
-                placeholder="Ex: Aluguel"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-400">
-                Valor
-              </label>
-              <input
-                type="number"
-                value={novaDespesa.valor}
-                onChange={(e) =>
-                  setNovaDespesa({ ...novaDespesa, valor: e.target.value })
-                }
-                className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-red-500 focus:ring-red-500"
-                placeholder="R$ 0,00"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-400">
-                Data
-              </label>
-              <input
-                type="date"
-                value={novaDespesa.data}
-                onChange={(e) =>
-                  setNovaDespesa({ ...novaDespesa, data: e.target.value })
-                }
-                className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-red-500 focus:ring-red-500"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="pago"
-              checked={novaDespesa.pago}
-              onChange={(e) =>
-                setNovaDespesa({ ...novaDespesa, pago: e.target.checked })
-              }
-              className="rounded border-gray-700 bg-gray-800 text-red-500 focus:ring-red-500"
-            />
-            <label htmlFor="pago" className="text-sm font-medium text-gray-400">
-              Já foi pago
-            </label>
-          </div>
-
+      <Card className="p-4">
+        <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          <input
+            type="text"
+            placeholder="Descrição"
+            value={novaDescricao}
+            onChange={(e) => setNovaDescricao(e.target.value)}
+            className="w-full p-2 rounded-lg bg-gray-800/50 border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            required
+          />
+          <input
+            type="number"
+            placeholder="Valor"
+            value={novoValor}
+            onChange={(e) => setNovoValor(e.target.value)}
+            className="w-full p-2 rounded-lg bg-gray-800/50 border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            required
+          />
+          <input
+            type="text"
+            placeholder="Categoria"
+            value={novaCategoria}
+            onChange={(e) => setNovaCategoria(e.target.value)}
+            className="w-full p-2 rounded-lg bg-gray-800/50 border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            required
+          />
+          <input
+            type="date"
+            value={novaData}
+            onChange={(e) => setNovaData(e.target.value)}
+            className="w-full p-2 rounded-lg bg-gray-800/50 border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            required
+          />
           <button
             type="submit"
-            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-500/50"
+            className="w-full p-2 rounded-lg bg-blue-500 hover:bg-blue-600 transition-colors text-white font-medium"
           >
-            <PlusCircle className="h-4 w-4" />
-            Adicionar Despesa
+            Adicionar
           </button>
         </form>
-      </div>
+      </Card>
 
       {/* Lista de Despesas */}
-      <div className="rounded-lg border border-gray-800 bg-gray-900/50">
-        <div className="p-4 md:p-6">
-          <h2 className="mb-4 text-xl font-semibold">Despesas Registradas</h2>
-          <div className="space-y-4">
-            {despesas.length === 0 ? (
-              <p className="text-center text-gray-500">
-                Nenhuma despesa registrada ainda.
-              </p>
-            ) : (
-              despesas.map((despesa) => (
-                <div
-                  key={despesa.id}
-                  className="flex flex-col md:flex-row md:items-center justify-between rounded-lg border border-gray-800 bg-gray-800/50 p-4 gap-4"
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {despesas.map((despesa) => (
+          <Card key={despesa.id} className="p-4 space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-medium">{despesa.descricao}</h3>
+                <p className="text-sm text-gray-400">{despesa.categoria}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => togglePago(despesa)}
+                  className={cn(
+                    "p-1 rounded-lg transition-colors",
+                    despesa.pago ? "text-green-500 hover:bg-green-500/10" : "text-gray-400 hover:bg-gray-700"
+                  )}
                 >
-                  <div className="flex items-center gap-4">
-                    <DollarSign className="h-8 w-8 text-red-500 shrink-0" />
-                    <div>
-                      <h3 className="font-medium">{despesa.descricao}</h3>
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
-                        <span>{new Date(despesa.data).toLocaleDateString("pt-BR")}</span>
-                        <span>•</span>
-                        <span>{getCategoriaInfo(despesa.categoria).nome}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <p className="text-lg font-bold text-red-500">
-                      R$ {despesa.valor.toFixed(2)}
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => togglePago(despesa)}
-                        className={`p-2 rounded-lg hover:bg-gray-700 ${
-                          despesa.pago ? "text-green-500" : "text-gray-400"
-                        }`}
-                        title={despesa.pago ? "Marcar como não pago" : "Marcar como pago"}
-                      >
-                        {despesa.pago ? (
-                          <CheckCircle className="h-5 w-5" />
-                        ) : (
-                          <XCircle className="h-5 w-5" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleEdit(despesa)}
-                        className="p-2 rounded-lg hover:bg-gray-700 text-blue-500"
-                      >
-                        <Pencil className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(despesa.id)}
-                        className="p-2 rounded-lg hover:bg-gray-700 text-red-500"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+                  {despesa.pago ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
+                </button>
+                <button
+                  onClick={() => handleDelete(despesa.id)}
+                  className="p-1 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-400">{new Date(despesa.data).toLocaleDateString()}</span>
+              <span className="font-medium text-lg">{formatCurrency(despesa.valor)}</span>
+            </div>
+          </Card>
+        ))}
       </div>
 
+      {/* Estado vazio */}
+      {!loading && despesas.length === 0 && (
+        <Card className="p-8 text-center">
+          <ArrowDownCircle className="w-12 h-12 mx-auto mb-4 text-gray-500" />
+          <h3 className="text-lg font-medium mb-2">Nenhuma despesa registrada</h3>
+          <p className="text-gray-400">Comece adicionando sua primeira despesa</p>
+        </Card>
+      )}
+
+      {/* Chat IA */}
+      <ChatIA />
+
       {/* Modal de Edição */}
-      {modalAberto && editandoDespesa && (
+      {modalAberto && editando && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-md rounded-lg border border-gray-800 bg-gray-900 p-6">
             <h2 className="mb-4 text-xl font-semibold">Editar Despesa</h2>
@@ -369,13 +329,8 @@ export default function DespesasPage() {
                   Categoria
                 </label>
                 <select
-                  value={editandoDespesa.categoria}
-                  onChange={(e) =>
-                    setEditandoDespesa({
-                      ...editandoDespesa,
-                      categoria: e.target.value,
-                    })
-                  }
+                  value={novaCategoria}
+                  onChange={(e) => setNovaCategoria(e.target.value)}
                   className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-red-500 focus:ring-red-500"
                 >
                   {Object.entries(CATEGORIAS).map(([value, { nome }]) => (
@@ -392,13 +347,8 @@ export default function DespesasPage() {
                 </label>
                 <input
                   type="text"
-                  value={editandoDespesa.descricao}
-                  onChange={(e) =>
-                    setEditandoDespesa({
-                      ...editandoDespesa,
-                      descricao: e.target.value,
-                    })
-                  }
+                  value={novaDescricao}
+                  onChange={(e) => setNovaDescricao(e.target.value)}
                   className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-red-500 focus:ring-red-500"
                   required
                 />
@@ -410,13 +360,8 @@ export default function DespesasPage() {
                 </label>
                 <input
                   type="number"
-                  value={editandoDespesa.valor}
-                  onChange={(e) =>
-                    setEditandoDespesa({
-                      ...editandoDespesa,
-                      valor: Number(e.target.value),
-                    })
-                  }
+                  value={novoValor}
+                  onChange={(e) => setNovoValor(e.target.value)}
                   className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-red-500 focus:ring-red-500"
                   required
                 />
@@ -428,34 +373,11 @@ export default function DespesasPage() {
                 </label>
                 <input
                   type="date"
-                  value={editandoDespesa.data}
-                  onChange={(e) =>
-                    setEditandoDespesa({
-                      ...editandoDespesa,
-                      data: e.target.value,
-                    })
-                  }
+                  value={novaData}
+                  onChange={(e) => setNovaData(e.target.value)}
                   className="mt-1 block w-full rounded-lg border border-gray-700 bg-gray-800 p-2.5 text-sm text-white focus:border-red-500 focus:ring-red-500"
                   required
                 />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="edit-pago"
-                  checked={editandoDespesa.pago}
-                  onChange={(e) =>
-                    setEditandoDespesa({
-                      ...editandoDespesa,
-                      pago: e.target.checked,
-                    })
-                  }
-                  className="rounded border-gray-700 bg-gray-800 text-red-500 focus:ring-red-500"
-                />
-                <label htmlFor="edit-pago" className="text-sm font-medium text-gray-400">
-                  Já foi pago
-                </label>
               </div>
 
               <div className="flex justify-end gap-4">
@@ -463,7 +385,7 @@ export default function DespesasPage() {
                   type="button"
                   onClick={() => {
                     setModalAberto(false)
-                    setEditandoDespesa(null)
+                    setEditando(null)
                   }}
                   className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white"
                 >

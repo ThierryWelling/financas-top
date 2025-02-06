@@ -13,7 +13,9 @@ import {
   BarChart3,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from 'lucide-react'
+import { usePWA } from '@/hooks/usePWA'
 
 interface SidebarProps {
   isOpen: boolean
@@ -32,6 +34,7 @@ const menuItems = [
 
 export function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const pathname = usePathname()
+  const { isInstallable, instalarPWA } = usePWA()
 
   return (
     <aside
@@ -91,6 +94,21 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
             </Link>
           )
         })}
+
+        {/* Botão de Instalação do PWA */}
+        {isInstallable && (
+          <button
+            onClick={instalarPWA}
+            className={cn(
+              'flex items-center gap-4 px-4 py-3 rounded-lg transition-all w-full',
+              'hover:bg-gray-800/30 text-emerald-500',
+              !isOpen && 'justify-center'
+            )}
+          >
+            <Download className="w-6 h-6" />
+            {isOpen && <span>Instalar App</span>}
+          </button>
+        )}
       </nav>
     </aside>
   )
