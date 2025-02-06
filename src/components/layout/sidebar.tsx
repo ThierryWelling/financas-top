@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -35,34 +35,55 @@ const menuItems = [
 export function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const pathname = usePathname()
   const { isInstallable, instalarPWA } = usePWA()
+  const [isHovered, setIsHovered] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detectar se é dispositivo móvel
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768) // 768px é o breakpoint para tablets/desktop
+    }
+    
+    checkIfMobile()
+    window.addEventListener('resize', checkIfMobile)
+    
+    return () => window.removeEventListener('resize', checkIfMobile)
+  }, [])
+
+  // Determinar se o menu deve estar expandido
+  const shouldExpand = isMobile ? isOpen : isHovered
 
   return (
     <aside
+      onMouseEnter={() => !isMobile && setIsHovered(true)}
+      onMouseLeave={() => !isMobile && setIsHovered(false)}
       className={cn(
         'relative h-screen bg-gray-900/50 backdrop-blur-xl border-r border-gray-800 transition-all duration-300',
-        isOpen ? 'w-72' : 'w-20'
+        shouldExpand ? 'w-72' : 'w-20'
       )}
     >
       {/* Logo */}
       <div className="flex items-center justify-between h-16 px-4 border-b border-gray-800">
         <Link href="/dashboard" className="flex items-center gap-2">
           <ArrowRightLeft className="w-8 h-8 text-blue-500" />
-          {isOpen && (
+          {shouldExpand && (
             <span className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
               Financasia
             </span>
           )}
         </Link>
-        <button
-          onClick={onToggle}
-          className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
-        >
-          {isOpen ? (
-            <ChevronLeft className="w-5 h-5" />
-          ) : (
-            <ChevronRight className="w-5 h-5" />
-          )}
-        </button>
+        {isMobile && (
+          <button
+            onClick={onToggle}
+            className="p-2 rounded-lg hover:bg-gray-800 transition-colors md:hidden"
+          >
+            {isOpen ? (
+              <ChevronLeft className="w-5 h-5" />
+            ) : (
+              <ChevronRight className="w-5 h-5" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Menu */}
@@ -80,7 +101,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                 isActive
                   ? 'bg-gray-800/50 border-r-4 border-blue-500'
                   : 'hover:bg-gray-800/30',
-                !isOpen && 'justify-center'
+                !shouldExpand && 'justify-center'
               )}
             >
               <Icon
@@ -90,7 +111,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                   isActive && 'animate-pulse'
                 )}
               />
-              {isOpen && <span>{item.name}</span>}
+              {shouldExpand && <span>{item.name}</span>}
             </Link>
           )
         })}
@@ -102,11 +123,11 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
             className={cn(
               'flex items-center gap-4 px-4 py-3 rounded-lg transition-all w-full',
               'hover:bg-gray-800/30 text-emerald-500',
-              !isOpen && 'justify-center'
+              !shouldExpand && 'justify-center'
             )}
           >
             <Download className="w-6 h-6" />
-            {isOpen && <span>Instalar App</span>}
+            {shouldExpand && <span>Instalar App</span>}
           </button>
         )}
       </nav>

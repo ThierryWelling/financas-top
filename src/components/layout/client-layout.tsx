@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
-import { Sidebar } from "@/components/sidebar"
+import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { NotificationsButton } from "@/components/notifications"
 import { Toaster } from "@/components/ui/toaster"
@@ -18,6 +18,23 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   const { profile } = useProfile()
   const isAuthPage = pathname === '/login' || pathname === '/register'
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detectar se é dispositivo móvel
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+      // Fechar a sidebar automaticamente em desktop
+      if (window.innerWidth >= 768) {
+        setIsSidebarOpen(false)
+      }
+    }
+    
+    checkIfMobile()
+    window.addEventListener('resize', checkIfMobile)
+    
+    return () => window.removeEventListener('resize', checkIfMobile)
+  }, [])
 
   useEffect(() => {
     if (!isAuthPage && profile?.id) {
@@ -80,6 +97,9 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
       
       {/* Layout principal */}
       <div className="relative flex w-full">
+        {/* Sidebar */}
+        <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+
         {/* Conteúdo principal */}
         <div className="flex-1">
           <Header onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
@@ -87,9 +107,6 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
             {children}
           </main>
         </div>
-
-        {/* Sidebar */}
-        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
         {/* Notificações */}
         <div className="fixed top-4 right-4 z-50">
