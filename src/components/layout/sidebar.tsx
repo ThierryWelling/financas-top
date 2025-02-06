@@ -22,8 +22,12 @@ import {
   ChevronRight
 } from 'lucide-react'
 
-export function Sidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false)
+interface SidebarProps {
+  isOpen: boolean
+  onToggle: () => void
+}
+
+export function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const { isAdmin } = useProfile()
@@ -53,7 +57,7 @@ export function Sidebar() {
 
   return (
     <aside className={`hidden md:flex flex-col fixed left-0 top-0 h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-900/95 border-r border-gray-800/50 transition-all duration-300 ${
-      isCollapsed ? 'w-20' : 'w-64'
+      !isOpen ? 'w-20' : 'w-64'
     }`}>
       {/* Logo */}
       <div className="flex items-center gap-3 p-4 border-b border-gray-800/50">
@@ -64,7 +68,7 @@ export function Sidebar() {
           height={32}
           className="shrink-0"
         />
-        {!isCollapsed && (
+        {isOpen && (
           <span className="text-lg font-semibold bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text">
             Financasia
           </span>
@@ -89,10 +93,10 @@ export function Sidebar() {
               <div className={`shrink-0 ${isActive ? 'text-blue-500' : 'text-gray-400 group-hover:text-white'}`}>
                 <item.icon size={20} />
               </div>
-              {!isCollapsed && (
+              {isOpen && (
                 <span className="truncate">{item.name}</span>
               )}
-              {isActive && !isCollapsed && (
+              {isActive && isOpen && (
                 <div className="absolute left-0 w-1 h-8 bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 rounded-r-full" />
               )}
             </button>
@@ -107,13 +111,13 @@ export function Sidebar() {
           className="w-full flex items-center gap-3 p-3 rounded-lg text-sm font-medium text-red-500 hover:bg-red-500/10 transition-colors"
         >
           <LogOut size={20} className="shrink-0" />
-          {!isCollapsed && <span>Sair</span>}
+          {isOpen && <span>Sair</span>}
         </button>
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={onToggle}
           className="w-full flex items-center gap-3 p-3 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800/50 hover:text-white transition-colors"
         >
-          {isCollapsed ? (
+          {!isOpen ? (
             <ChevronRight size={20} className="shrink-0" />
           ) : (
             <>

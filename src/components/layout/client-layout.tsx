@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { ChatIA } from "@/components/chat-ia"
 import { analiseAutomatica } from "@/services/analise-automatica"
@@ -19,6 +19,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   const pathname = usePathname()
   const { profile } = useProfile()
   const isAuthPage = pathname === '/login' || pathname === '/register'
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   useEffect(() => {
     if (!isAuthPage && profile?.id) {
@@ -76,7 +77,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-950 text-gray-100">
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
       <div className="flex-1">
         <HeaderMobile />
         <main className="flex-1 overflow-y-auto pt-16 md:pt-4 pb-24">
