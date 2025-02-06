@@ -1,12 +1,7 @@
 {
-  "/not-found": "app/not-found.js",
-  "/dashboard/page": "app/dashboard/page.js",
   "/despesas/page": "app/despesas/page.js",
-  "/orcamentos/page": "app/orcamentos/page.js",
-  "/configuracoes/page": "app/configuracoes/page.js",
   "/sonhos/page": "app/sonhos/page.js",
-  "/login/page": "app/login/page.js",
-  "/receitas/page": "app/receitas/page.js",
-  "/sugestoes/page": "app/sugestoes/page.js",
-  "/relatorios/page": "app/relatorios/page.js"
+  "/admin/page": "app/admin/page.js",
+  "/orcamentos/page": "app/orcamentos/page.js",
+  "/dashboard/page": "app/dashboard/page.js"
 }

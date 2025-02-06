@@ -191,12 +191,34 @@ body {
 }
 
 /* Animações */
+@keyframes slideInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(100%) scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slideOutDown {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100%) scale(0.5);
+  }
+}
+
 @keyframes float {
   0% {
     transform: translateY(0px);
   }
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-5px);
   }
   100% {
     transform: translateY(0px);
@@ -204,7 +226,17 @@ body {
 }
 
 .animate-float {
-  animation: float 4s ease-in-out infinite;
+  animation: float 3s ease-in-out infinite;
+}
+
+.menu-item-enter {
+  animation: slideInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  transform-origin: bottom center;
+}
+
+.menu-item-exit {
+  animation: slideOutDown 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  transform-origin: bottom center;
 }
 
 /* Efeitos de Hover */
@@ -298,4 +330,20 @@ body {
     rgba(168, 85, 247, 0.2) 100%
   );
   animation: spin-gradient 1s linear infinite;
+}
+
+/* Efeito de Desfoque */
+.backdrop-blur-sm {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.backdrop-blur-md {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Transições suaves */
+.transition-backdrop {
+  transition: backdrop-filter 0.3s ease-in-out;
 } 

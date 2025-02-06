@@ -1,136 +1,128 @@
-import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
+"use client"
+
+import { useState } from 'react'
+import Image from 'next/image'
+import { useRouter, usePathname } from 'next/navigation'
+import { useProfile } from "@/hooks/useProfile"
+import { supabase } from "@/lib/supabase"
 import {
   LayoutDashboard,
-  ArrowRightLeft,
-  ArrowDownCircle,
   ArrowUpCircle,
+  ArrowDownCircle,
   Calendar,
   Star,
   Lightbulb,
   BarChart3,
+  Settings,
+  Wallet,
+  Target,
+  LogOut,
+  Shield,
   ChevronLeft,
-  ChevronRight,
-  Download,
+  ChevronRight
 } from 'lucide-react'
-import { usePWA } from '@/hooks/usePWA'
 
-interface SidebarProps {
-  isOpen: boolean
-  onToggle: () => void
-}
-
-const menuItems = [
-  { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', color: 'text-blue-500' },
-  { name: 'Receitas', icon: ArrowUpCircle, href: '/receitas', color: 'text-green-500' },
-  { name: 'Despesas', icon: ArrowDownCircle, href: '/despesas', color: 'text-red-500' },
-  { name: 'Eventuais', icon: Calendar, href: '/eventuais', color: 'text-orange-500' },
-  { name: 'Sonhos', icon: Star, href: '/sonhos', color: 'text-purple-500' },
-  { name: 'Sugestões', icon: Lightbulb, href: '/sugestoes', color: 'text-indigo-500' },
-  { name: 'Relatórios', icon: BarChart3, href: '/relatorios', color: 'text-cyan-500' },
-]
-
-export function Sidebar({ isOpen, onToggle }: SidebarProps) {
+export function Sidebar() {
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const router = useRouter()
   const pathname = usePathname()
-  const { isInstallable, instalarPWA } = usePWA()
-  const [isHovered, setIsHovered] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
+  const { isAdmin } = useProfile()
 
-  // Detectar se é dispositivo móvel
-  useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768) // 768px é o breakpoint para tablets/desktop
+  const menuItems = [
+    { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+    { name: 'Receitas', icon: ArrowUpCircle, href: '/receitas' },
+    { name: 'Despesas', icon: ArrowDownCircle, href: '/despesas' },
+    { name: 'Eventuais', icon: Calendar, href: '/eventuais' },
+    { name: 'Sonhos', icon: Star, href: '/sonhos' },
+    { name: 'Sugestões', icon: Lightbulb, href: '/sugestoes' },
+    { name: 'Relatórios', icon: BarChart3, href: '/relatorios' },
+    { name: 'Categorias', icon: Target, href: '/categorias' },
+    { name: 'Orçamentos', icon: Wallet, href: '/orcamentos' },
+    { name: 'Configurações', icon: Settings, href: '/configuracoes' },
+    ...(isAdmin ? [{ name: 'Admin', icon: Shield, href: '/admin' }] : []),
+  ]
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut()
+      router.push('/login')
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error)
     }
-    
-    checkIfMobile()
-    window.addEventListener('resize', checkIfMobile)
-    
-    return () => window.removeEventListener('resize', checkIfMobile)
-  }, [])
-
-  // Determinar se o menu deve estar expandido
-  const shouldExpand = isMobile ? isOpen : isHovered
+  }
 
   return (
-    <aside
-      onMouseEnter={() => !isMobile && setIsHovered(true)}
-      onMouseLeave={() => !isMobile && setIsHovered(false)}
-      className={cn(
-        'relative h-screen bg-gray-900/50 backdrop-blur-xl border-r border-gray-800 transition-all duration-300',
-        shouldExpand ? 'w-72' : 'w-20'
-      )}
-    >
+    <aside className={`hidden md:flex flex-col fixed left-0 top-0 h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-900/95 border-r border-gray-800/50 transition-all duration-300 ${
+      isCollapsed ? 'w-20' : 'w-64'
+    }`}>
       {/* Logo */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-gray-800">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <ArrowRightLeft className="w-8 h-8 text-blue-500" />
-          {shouldExpand && (
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-              Financasia
-            </span>
-          )}
-        </Link>
-        {isMobile && (
-          <button
-            onClick={onToggle}
-            className="p-2 rounded-lg hover:bg-gray-800 transition-colors md:hidden"
-          >
-            {isOpen ? (
-              <ChevronLeft className="w-5 h-5" />
-            ) : (
-              <ChevronRight className="w-5 h-5" />
-            )}
-          </button>
+      <div className="flex items-center gap-3 p-4 border-b border-gray-800/50">
+        <Image
+          src="/logo.svg"
+          alt="Financasia"
+          width={32}
+          height={32}
+          className="shrink-0"
+        />
+        {!isCollapsed && (
+          <span className="text-lg font-semibold bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text">
+            Financasia
+          </span>
         )}
       </div>
 
-      {/* Menu */}
-      <nav className="p-4 space-y-2">
+      {/* Menu Items */}
+      <nav className="flex-1 overflow-y-auto p-3 space-y-2">
         {menuItems.map((item) => {
           const isActive = pathname === item.href
-          const Icon = item.icon
-
           return (
-            <Link
+            <button
               key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-4 px-4 py-3 rounded-lg transition-all',
-                isActive
-                  ? 'bg-gray-800/50 border-r-4 border-blue-500'
-                  : 'hover:bg-gray-800/30',
-                !shouldExpand && 'justify-center'
-              )}
+              onClick={() => router.push(item.href)}
+              className={`w-full flex items-center gap-3 p-3 rounded-lg text-sm font-medium transition-all duration-200 group
+                ${isActive 
+                  ? 'bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 text-white' 
+                  : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
+                }
+              `}
             >
-              <Icon
-                className={cn(
-                  'w-6 h-6',
-                  item.color,
-                  isActive && 'animate-pulse'
-                )}
-              />
-              {shouldExpand && <span>{item.name}</span>}
-            </Link>
+              <div className={`shrink-0 ${isActive ? 'text-blue-500' : 'text-gray-400 group-hover:text-white'}`}>
+                <item.icon size={20} />
+              </div>
+              {!isCollapsed && (
+                <span className="truncate">{item.name}</span>
+              )}
+              {isActive && !isCollapsed && (
+                <div className="absolute left-0 w-1 h-8 bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 rounded-r-full" />
+              )}
+            </button>
           )
         })}
-
-        {/* Botão de Instalação do PWA */}
-        {isInstallable && (
-          <button
-            onClick={instalarPWA}
-            className={cn(
-              'flex items-center gap-4 px-4 py-3 rounded-lg transition-all w-full',
-              'hover:bg-gray-800/30 text-emerald-500',
-              !shouldExpand && 'justify-center'
-            )}
-          >
-            <Download className="w-6 h-6" />
-            {shouldExpand && <span>Instalar App</span>}
-          </button>
-        )}
       </nav>
+
+      {/* Bottom Actions */}
+      <div className="p-3 border-t border-gray-800/50 space-y-2">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 p-3 rounded-lg text-sm font-medium text-red-500 hover:bg-red-500/10 transition-colors"
+        >
+          <LogOut size={20} className="shrink-0" />
+          {!isCollapsed && <span>Sair</span>}
+        </button>
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="w-full flex items-center gap-3 p-3 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800/50 hover:text-white transition-colors"
+        >
+          {isCollapsed ? (
+            <ChevronRight size={20} className="shrink-0" />
+          ) : (
+            <>
+              <ChevronLeft size={20} className="shrink-0" />
+              <span>Recolher menu</span>
+            </>
+          )}
+        </button>
+      </div>
     </aside>
   )
 } 

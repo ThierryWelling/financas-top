@@ -13,11 +13,7 @@ interface DespesaImportada {
   pago: boolean
 }
 
-interface ImportarDespesasProps {
-  onImportComplete?: () => Promise<void>
-}
-
-export function ImportarDespesas({ onImportComplete }: ImportarDespesasProps) {
+export function ImportarDespesas() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
 
@@ -102,11 +98,6 @@ export function ImportarDespesas({ onImportComplete }: ImportarDespesasProps) {
         title: 'Despesas importadas com sucesso',
         description: `${despesasValidas.length} despesas foram importadas.`
       })
-
-      // Chamar o callback se existir
-      if (onImportComplete) {
-        await onImportComplete()
-      }
 
     } catch (error: any) {
       console.error('Erro ao importar despesas:', error)
