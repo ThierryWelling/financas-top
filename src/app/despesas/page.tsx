@@ -22,6 +22,7 @@ import {
   XCircle,
   Calculator,
   Plus,
+  ArrowDownCircle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { despesasService } from "@/services/financas"
